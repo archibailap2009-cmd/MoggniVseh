@@ -24,7 +24,8 @@
     <input type="file" id="cam" accept="image/*" capture="user" hidden>
     <button class="btn alt" onclick="file.click()">Выбрать фото</button>
     <button class="btn alt" onclick="cam.click()">Сделать фото</button>
-    <button class="btn" onclick="scan()">Анализ</button>
+    <button class="btn" id="scanbtn" onclick="scan()">Анализ</button>
+    <div id="err" class="mut" style="display:none;text-align:center;margin-top:8px"></div>
   </div>
   <div class="card" id="res" style="display:none">
     <div class="mut">Твой тир</div>
@@ -38,13 +39,9 @@
     <button class="acc-h" onclick="document.getElementById('acc').classList.toggle('open')"><span>Подробный анализ</span><span class="arr">▼</span></button>
     <div class="acc-b">
       <p style="margin:12px 0 8px">Сейчас ты <b id="dTier">LTN</b>, это <b id="dRange">2–4</b> на индексе True Adam.</p>
-      <p class="mut" style="margin:0 0 6px">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore. Ut enim ad minim veniam, quis nostrud exercitation ullamco.</p>
+      <p class="mut" id="desc" style="margin:0 0 6px">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore. Ut enim ad minim veniam, quis nostrud exercitation ullamco.</p>
       <div class="mut" style="margin:14px 0 6px">Чтобы моггать, можешь начать с:</div>
-      <div class="tip"><b>01</b><div>Мьюинг<div class="mut">Lorem ipsum dolor sit amet</div></div></div>
-      <div class="tip"><b>02</b><div>Побриться<div class="mut">Consectetur adipiscing elit</div></div></div>
-      <div class="tip"><b>03</b><div>Кожа и уход<div class="mut">Sed do eiusmod tempor</div></div></div>
-      <div class="tip"><b>04</b><div>Причёска<div class="mut">Ut labore et dolore magna</div></div></div>
-      <div class="tip"><b>05</b><div>Lorem ipsum<div class="mut">Quis nostrud exercitation</div></div></div>
+      <div id="tips"></div>
       <button class="btn" onclick="go('progress')">В календарь прогресса</button>
     </div>
   </div>
