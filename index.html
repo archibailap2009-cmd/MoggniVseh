@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>MOGGNI VSEH</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+<header>
+  <button class="ib" onclick="go('settings')" aria-label="Настройки"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/><g stroke-width="3.2" stroke-linecap="butt"><path d="M12 2.5v4"/><path d="M12 2.5v4" transform="rotate(60 12 12)"/><path d="M12 2.5v4" transform="rotate(120 12 12)"/><path d="M12 2.5v4" transform="rotate(180 12 12)"/><path d="M12 2.5v4" transform="rotate(240 12 12)"/><path d="M12 2.5v4" transform="rotate(300 12 12)"/></g></svg></button>
+  <div class="logo">MOGGNI VSEH</div>
+  <button class="ib" onclick="go('settings')" aria-label="Профиль"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></button>
+</header>
+<main>
+
+<section class="scr" id="home">
+  <h2>Ты недоmoggаешь, начнем тренировку!</h2>
+  <div class="card">
+    <div class="ph" id="ph"><span>Загрузи фото<br>(заглушка — реального анализа нет)</span></div>
+    <input type="file" id="file" accept="image/*" hidden>
+    <input type="file" id="cam" accept="image/*" capture="user" hidden>
+    <button class="btn alt" onclick="file.click()">Выбрать фото</button>
+    <button class="btn alt" onclick="cam.click()">Сделать фото</button>
+    <button class="btn" onclick="scan()">Анализ</button>
+  </div>
+  <div class="card" id="res" style="display:none">
+    <div class="mut">Твой тир</div>
+    <div class="big" id="tier">LTN</div>
+    <div class="big" id="adv" style="font-size:22px;margin-top:6px">СОБЕРИСЬ, РЯДОВОЙ</div>
+    <div class="row" style="margin-top:12px"><span class="mut">Индекс True Adam</span><span class="big" id="score" style="font-size:32px">5.8</span></div>
+    <div class="bar"><i id="sbar" style="width:58%"></i></div>
+    <div class="row mut"><span>0</span><span>10 — нереальный</span></div>
+  </div>
+  <div class="card acc" id="acc" style="display:none">
+    <button class="acc-h" onclick="document.getElementById('acc').classList.toggle('open')"><span>Подробный анализ</span><span class="arr">▼</span></button>
+    <div class="acc-b">
+      <p style="margin:12px 0 8px">Сейчас ты <b id="dTier">LTN</b>, это <b id="dRange">2–4</b> на индексе True Adam.</p>
+      <p class="mut" style="margin:0 0 6px">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore. Ut enim ad minim veniam, quis nostrud exercitation ullamco.</p>
+      <div class="mut" style="margin:14px 0 6px">Чтобы моггать, можешь начать с:</div>
+      <div class="tip"><b>01</b><div>Мьюинг<div class="mut">Lorem ipsum dolor sit amet</div></div></div>
+      <div class="tip"><b>02</b><div>Побриться<div class="mut">Consectetur adipiscing elit</div></div></div>
+      <div class="tip"><b>03</b><div>Кожа и уход<div class="mut">Sed do eiusmod tempor</div></div></div>
+      <div class="tip"><b>04</b><div>Причёска<div class="mut">Ut labore et dolore magna</div></div></div>
+      <div class="tip"><b>05</b><div>Lorem ipsum<div class="mut">Quis nostrud exercitation</div></div></div>
+      <button class="btn" onclick="go('progress')">В календарь прогресса</button>
+    </div>
+  </div>
+</section>
+
+<section class="scr" id="progress">
+  <h2>Прогресс</h2>
+  <div class="card row"><div><div class="big">7</div><div class="mut">дней подряд</div></div><div><div class="big">+0.6</div><div class="mut">к оценке</div></div></div>
+  <div class="cal">[ здесь будет календарь ]</div>
+  <button class="btn" style="margin-top:12px">Отметить сегодня</button>
+</section>
+
+<section class="scr" id="battle">
+  <h2>Батл</h2>
+  <div class="row" style="margin-bottom:10px"><button class="pill on" id="bo" onclick="bm('open')">Открытый</button><button class="pill" id="bf" onclick="bm('friend')">С другом</button></div>
+  <div class="card" id="bopen" style="text-align:center"><div class="big" style="font-size:28px">Функция пока недоступна</div><p class="mut">Lorem ipsum dolor sit amet.</p></div>
+  <div id="bfriend" style="display:none"><button class="btn">Пригласить друга</button></div>
+</section>
+
+<section class="scr" id="top">
+  <h2>Лидеры</h2>
+  <div class="row" style="margin-bottom:10px"><button class="pill on">Неделя</button><button class="pill">Месяц</button><button class="pill">Всё время</button></div>
+  <div class="card">
+    <div class="lb"><b>01</b><div class="av"></div><div>@user_one<div class="mut">True Adam</div></div><span class="sc">9.4</span></div>
+    <div class="lb"><b>02</b><div class="av"></div><div>@user_two<div class="mut">Chadlite</div></div><span class="sc">8.7</span></div>
+    <div class="lb"><b>03</b><div class="av"></div><div>@user_three<div class="mut">HTN</div></div><span class="sc">7.9</span></div>
+    <div class="lb"><b>04</b><div class="av"></div><div>@user_four<div class="mut">MTN</div></div><span class="sc">6.8</span></div>
+  </div>
+</section>
+
+<section class="scr" id="donate">
+  <h2>Донат</h2>
+  <div class="card" style="text-align:center"><div class="big" style="font-size:36px">Lorem ipsum</div><p class="mut">Dolor sit amet, consectetur adipiscing elit.</p></div>
+  <div class="row"><button class="pill on">100</button><button class="pill">300</button><button class="pill">500</button></div>
+  <button class="btn">Поддержать (демо)</button>
+</section>
+
+<section class="scr" id="settings">
+  <h2>Настройки</h2>
+  <div class="card">
+    <div class="set"><span>Ник</span><span class="mut">@user</span></div>
+    <div class="set"><span>Приватность профиля</span><span class="mut">вкл</span></div>
+    <div class="set"><span>Тема</span><button class="pill" onclick="theme()">Сменить</button></div>
+    <div class="set"><span>Язык</span><span class="mut">RU</span></div>
+  </div>
+</section>
+
+</main>
+<nav>
+  <button class="tab" data-t="battle"><svg class="i" viewBox="0 0 24 24"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v2a3 3 0 0 0 3 3"/><path d="M17 6h3v2a3 3 0 0 1-3 3"/><path d="M12 14v4M9 18h6M8 21h8"/></svg>Батл</button>
+  <button class="tab" data-t="top"><svg class="i" viewBox="0 0 24 24"><path d="M3 18L2 7l5.5 5L12 4l4.5 8L22 7l-1 11z"/><path d="M3 21h18"/></svg>Лидеры</button>
+  <button class="tab" data-t="home"><svg class="i" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Главная</button>
+  <button class="tab" data-t="progress"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Прогресс</button>
+  <button class="tab" data-t="donate"><svg class="i" viewBox="0 0 24 24"><path d="M12 2v20"/><path d="M17 6.5C16 5 14.3 4.5 12 4.5c-2.8 0-4.5 1.3-4.5 3.2 0 4.5 9 2.3 9 6.6 0 2-1.8 3.3-4.5 3.3-2.3 0-4-.7-5-2.3"/></svg>Донат</button>
+</nav>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
