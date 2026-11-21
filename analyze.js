@@ -1,6 +1,8 @@
 // Serverless-функция Vercel: принимает фото, спрашивает Claude, возвращает оценку.
 // Ключ API берётся только из переменной окружения ANTHROPIC_API_KEY (никогда не кладём его в код).
 
+const crypto = require("crypto");
+
 const TIERS = [
   { name: "Sub 3", range: "0–2", max: 2, advice: "ВОЗЬМИ СЕБЯ В РУКИ, РЯДОВОЙ" },
   { name: "LTN", range: "2–4", max: 4, advice: "СОБЕРИСЬ, РЯДОВОЙ" },
@@ -11,25 +13,54 @@ const TIERS = [
 ];
 
 const SYSTEM = `Ты — ИИ сайта MOGGNI VSEH, мемного «сканера» лица в стиле лукс-максинг-юмора.
-По фото оцени «труадамность» человека и верни ТОЛЬКО JSON без пояснений и без ```:
+По фото оцени «труадамность» человека и верни ТОЛЬКО JSON, без пояснений и без markdown-обёртки:
 
 {
-  "tier": "Sub 3 | Sub 5 | LTN | MTN | HTN | Chadlite | Chad | True Adam",
   "index": число от 0 до 10 с одним знаком после запятой,
-  "caps": "короткая фраза капсом, например: СОБЕРИСЬ, РЯДОВОЙ",
-  "description": "2–3 предложения: что видно на снимке (свет, ракурс, стрижка, выражение лица, осанка)",
-  "range": "в каком диапазоне индекса человек может оказаться при прокачке, например 5.5–7",
-  "tips": ["3–5 коротких безобидных советов"]
+  "description": "2–3 предложения (до 300 символов): что видно на снимке — свет, ракурс, стрижка, выражение лица, осанка",
+  "tips": [
+    { "title": "до 4 слов", "text": "один короткий безобидный совет, до 140 символов" }
+  ]
 }
+
+В tips ровно 3–4 пункта.
 
 Правила:
 - Тон: мемный, дерзкий, «сигма», но без унижений. Подкалывай, не добивай.
 - Оценивай только то, что видно: стрижка, брови, щетина, кожа, осанка, свет, ракурс, выражение лица.
 - Не делай выводов о расе, национальности, здоровье, инвалидности, возрасте или чём-то личном.
 - Советы только безопасные: стрижка, борода, уход за кожей, сон, осанка, спорт, одежда, свет и ракурс для фото, мьюинг как мем. Никаких операций, стероидов, жёстких диет.
-- Не ставь всем подряд высокие или низкие оценки: большинство должно попадать в 3–7, True Adam (9+) очень редко.
-- Если на фото нет человека или лица, верни tier "—", index 0 и шуточный caps вроде «ГДЕ ЛИЦО?».
-- Если на фото явно ребёнок, верни {"error":"minor"}.;
+- Не ставь всем подряд высокие или низкие оценки: большинство должно попадать в 3–7, оценка 9+ очень редкая.
+- Если на фото нет человека или лица, верни {"error":"no_face"}.
+- Если на фото явно ребёнок, верни {"error":"minor"}.`;
+
+// ---- Настройки лимитов (можно менять через переменные окружения в Vercel) ----
+function num(v, d) {
+  const n = Number(v);
+  return v !== undefined && v !== "" && isFinite(n) && n >= 0 ? n : d;
+}
+const BUDGET_USD = num(process.env.BUDGET_USD, 1); // общий потолок расходов
+const DAILY_SCANS = num(process.env.DAILY_SCANS, 5); // сканов на человека в сутки
+const PRICE_IN = num(process.env.PRICE_IN_PER_MTOK, 0.1); // $ за 1 млн входных токенов
+const PRICE_OUT = num(process.env.PRICE_OUT_PER_MTOK, 0.5); // $ за 1 млн выходных токенов
+
+const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+
+// Команды в Redis (Upstash) пачкой: redis([["GET","k"],["INCR","k2"]]) -> [значение1, значение2]
+async function redis(commands) {
+  const r = await fetch(REDIS_URL + "/pipeline", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + REDIS_TOKEN, "content-type": "application/json" },
+    body: JSON.stringify(commands),
+  });
+  if (!r.ok) throw new Error("redis " + r.status);
+  const rows = await r.json();
+  return rows.map((x) => {
+    if (x.error) throw new Error(x.error);
+    return x.result;
+  });
+}
 
 function clip(v, n) {
   return String(v == null ? "" : v).slice(0, n);
@@ -40,12 +71,41 @@ module.exports = async function handler(req, res) {
   if (process.env.ANALYSIS_ENABLED === "false") return res.status(503).json({ error: "off" });
 
   const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) return res.status(500).json({ error: "config" });
+  if (!key || !REDIS_URL || !REDIS_TOKEN) return res.status(500).json({ error: "config" });
 
   const image = req.body && req.body.image;
   const m = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(image || "");
   if (!m) return res.status(400).json({ error: "bad_image" });
   if (m[2].length > 3000000) return res.status(413).json({ error: "too_big" });
+
+  // ---- Кто это: хеш IP (сам IP нигде не храним) ----
+  const ip = String(
+    req.headers["x-real-ip"] || String(req.headers["x-forwarded-for"] || "").split(",")[0] || "unknown"
+  ).trim();
+  const who = crypto.createHash("sha256").update(ip).digest("hex").slice(0, 16);
+  const day = new Date().toISOString().slice(0, 10);
+  const scanKey = "mv:scans:" + who + ":" + day;
+  const refund = () => redis([["DECR", scanKey]]).catch(() => {});
+
+  // ---- Проверка лимитов ДО запроса к Claude ----
+  let spentMicro = 0;
+  try {
+    const [spent] = await redis([["GET", "mv:spend"]]);
+    spentMicro = Number(spent || 0);
+    if (spentMicro / 1e6 >= BUDGET_USD) return res.status(402).json({ error: "limit" });
+
+    const [used] = await redis([
+      ["INCR", scanKey],
+      ["EXPIRE", scanKey, 172800],
+    ]);
+    if (Number(used) > DAILY_SCANS) {
+      await refund();
+      return res.status(429).json({ error: "daily_limit" });
+    }
+  } catch (e) {
+    console.error("redis error", e.message);
+    return res.status(500).json({ error: "config" });
+  }
 
   let r;
   try {
@@ -72,20 +132,34 @@ module.exports = async function handler(req, res) {
       }),
     });
   } catch (e) {
+    await refund();
     return res.status(502).json({ error: "upstream" });
   }
 
   if (!r.ok) {
     const body = await r.text().catch(() => "");
     console.error("anthropic error", r.status);
+    await refund();
     if (r.status === 429) return res.status(429).json({ error: "busy" });
     if (/credit balance/i.test(body)) return res.status(402).json({ error: "limit" });
     return res.status(502).json({ error: "upstream" });
   }
 
   const data = await r.json();
-  // Для шагов 3–4 (бюджет и Telegram): сколько токенов ушло на этот запрос
-  console.log("usage", JSON.stringify(data.usage || {}));
+
+  // ---- Учёт расходов: токены × цена. Храним в микродолларах (целое число) ----
+  const u = data.usage || {};
+  // цена за 1 млн токенов в $ = микродолларов за 1 токен, поэтому делить не нужно
+  const micro = Math.ceil((u.input_tokens || 0) * PRICE_IN + (u.output_tokens || 0) * PRICE_OUT);
+  try {
+    const [total] = await redis([
+      ["INCRBY", "mv:spend", micro],
+      ["INCR", "mv:scans_total"],
+    ]);
+    console.log("usage", JSON.stringify(u), "cost_usd", micro / 1e6, "total_usd", Number(total) / 1e6);
+  } catch (e) {
+    console.error("spend not saved", e.message);
+  }
 
   const text = (data.content || [])
     .filter((b) => b.type === "text")
@@ -100,9 +174,8 @@ module.exports = async function handler(req, res) {
     return res.status(502).json({ error: "parse" });
   }
 
-  if (out.error === "no_face") {
-    return res.status(422).json({ error: "no_face" });
-  }
+  if (out.error === "no_face") return res.status(422).json({ error: "no_face" });
+  if (out.error === "minor") return res.status(422).json({ error: "minor" });
 
   let index = Number(out.index);
   if (!isFinite(index)) return res.status(502).json({ error: "parse" });
@@ -113,6 +186,8 @@ module.exports = async function handler(req, res) {
     .slice(0, 4)
     .map((t) => ({ title: clip(t && t.title, 40), text: clip(t && t.text, 140) }));
 
+  const used = await redis([["GET", scanKey]]).then((x) => Number(x[0] || 0)).catch(() => 0);
+
   return res.status(200).json({
     index,
     tier: tier.name,
@@ -120,5 +195,6 @@ module.exports = async function handler(req, res) {
     advice: tier.advice,
     description: clip(out.description, 300),
     tips,
+    left: Math.max(0, DAILY_SCANS - used),
   });
 };
