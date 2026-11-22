@@ -33,7 +33,6 @@ const SYSTEM = `Ты — ИИ сайта MOGGNI VSEH, мемного «скан�
 - Не ставь всем подряд высокие или низкие оценки: большинство должно попадать в 3–7, оценка 9+ очень редкая.
 - Если на фото нет человека или лица, верни {"error":"no_face"}.
 - Если на фото явно человек до 14 лет, верни {"error":"minor"}.`;
-
 // ---- Настройки лимитов (можно менять через переменные окружения в Vercel) ----
 function num(v, d) {
   const n = Number(v);
@@ -60,6 +59,49 @@ async function redis(commands) {
     if (x.error) throw new Error(x.error);
     return x.result;
   });
+}
+
+// ---- Telegram-уведомления (работают, только если заданы обе переменные) ----
+async function tg(text) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chat = process.env.TELEGRAM_CHAT_ID;
+  if (!token || !chat) return;
+  try {
+    await fetch("https://api.telegram.org/bot" + token + "/sendMessage", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ chat_id: chat, text: text }),
+      signal: AbortSignal.timeout(3000),
+    });
+  } catch (e) {
+    console.error("telegram failed"); // токен в лог не пишем
+  }
+}
+
+// true, если флаг поставили впервые (чтобы не слать одно и то же много раз)
+async function once(flag, ttlSeconds) {
+  try {
+    const [x] = await redis([["SET", flag, "1", "NX", "EX", ttlSeconds]]);
+    return x === "OK";
+  } catch (e) {
+    return false;
+  }
+}
+
+async function alerts(spentUsd, scans) {
+  const pct = (spentUsd / BUDGET_USD) * 100;
+  const base = "$" + spentUsd.toFixed(3) + " из $" + BUDGET_USD;
+  const month = 2592000;
+  if (pct >= 100) {
+    if (await once("mv:alert:100", month)) await tg("⛔ Лимит расходов достигнут (" + base + "). Сайт отвечает «лимит».");
+  } else if (pct >= 80) {
+    if (await once("mv:alert:80", month)) await tg("⚠️ Потрачено 80% бюджета: " + base);
+  } else if (pct >= 50) {
+    if (await once("mv:alert:50", month)) await tg("ℹ️ Потрачено 50% бюджета: " + base);
+  }
+  if (scans > 0 && scans % 10 === 0) {
+    await tg("📊 Сканов всего: " + scans + ", потрачено " + base);
+  }
 }
 
 function clip(v, n) {
@@ -141,7 +183,10 @@ module.exports = async function handler(req, res) {
     console.error("anthropic error", r.status);
     await refund();
     if (r.status === 429) return res.status(429).json({ error: "busy" });
-    if (/credit balance/i.test(body)) return res.status(402).json({ error: "limit" });
+    if (/credit balance/i.test(body)) {
+      if (await once("mv:alert:credits", 3600)) await tg("🚨 На счёте Anthropic закончились кредиты. Пополни баланс.");
+      return res.status(402).json({ error: "limit" });
+    }
     return res.status(502).json({ error: "upstream" });
   }
 
@@ -152,11 +197,13 @@ module.exports = async function handler(req, res) {
   // цена за 1 млн токенов в $ = микродолларов за 1 токен, поэтому делить не нужно
   const micro = Math.ceil((u.input_tokens || 0) * PRICE_IN + (u.output_tokens || 0) * PRICE_OUT);
   try {
-    const [total] = await redis([
+    const [total, count] = await redis([
       ["INCRBY", "mv:spend", micro],
       ["INCR", "mv:scans_total"],
     ]);
-    console.log("usage", JSON.stringify(u), "cost_usd", micro / 1e6, "total_usd", Number(total) / 1e6);
+    const spentUsd = Number(total) / 1e6;
+    console.log("usage", JSON.stringify(u), "cost_usd", micro / 1e6, "total_usd", spentUsd);
+    await alerts(spentUsd, Number(count));
   } catch (e) {
     console.error("spend not saved", e.message);
   }
