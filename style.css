@@ -41,3 +41,15 @@ h2{font-size:28px;margin-bottom:14px}
 nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;display:flex;gap:6px;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));background:var(--bg);border-top:2px solid var(--line)}
 .tab{flex:1;padding:10px 0;border:2px solid var(--line);border-radius:14px;background:none;color:var(--fg);font-size:11px;cursor:pointer}
 .tab svg{width:32px;height:32px;display:block;margin:0 auto 2px}.tab.on{background:var(--fg);color:var(--bg)}
+.gate{position:fixed;inset:0;z-index:100;background:var(--bg);overflow-y:auto;display:flex;justify-content:center;padding-top:env(safe-area-inset-top,0px)}
+.gate-in{width:100%;max-width:430px;min-height:100%;display:flex;flex-direction:column}
+.age{width:44px;height:44px;border:2px solid var(--line);border-radius:50%;display:grid;place-items:center;font-family:Oswald,Impact,sans-serif;font-size:16px}
+.gate-b{flex:1;display:flex;flex-direction:column;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px))}
+.gate h1{font-size:48px;line-height:1;margin-top:24px}
+.gate-s{margin:8px 0 18px;color:var(--mut);font-style:italic}
+.gate-c p{margin:0 0 12px;font-size:15px;line-height:1.45}
+.gate-c p:last-child{margin-bottom:0}
+.gate-k{margin-bottom:12px;color:var(--mut);font-family:ui-monospace,Menlo,monospace;font-size:12px;letter-spacing:.5px}
+.gate-btn{padding:16px 14px;font-size:20px}
+.gate-btn small{display:block;margin-top:8px;font:400 13px/1.4 Inter,Arial,sans-serif;text-transform:none}
+.gate-f{margin-top:auto;padding-top:24px;text-align:center;color:var(--mut);font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.5px}
