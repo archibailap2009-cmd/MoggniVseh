@@ -10,7 +10,6 @@
 <body>
 <div class="app">
 <header>
-  <button class="ib" onclick="go('settings')" aria-label="Настройки"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/><g stroke-width="3.2" stroke-linecap="butt"><path d="M12 2.5v4"/><path d="M12 2.5v4" transform="rotate(60 12 12)"/><path d="M12 2.5v4" transform="rotate(120 12 12)"/><path d="M12 2.5v4" transform="rotate(180 12 12)"/><path d="M12 2.5v4" transform="rotate(240 12 12)"/><path d="M12 2.5v4" transform="rotate(300 12 12)"/></g></svg></button>
   <div class="logo">MOGGNI VSEH</div>
   <button class="ib" onclick="go('settings')" aria-label="Профиль"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></button>
 </header>
@@ -72,21 +71,18 @@
   </div>
 </section>
 
-<section class="scr" id="donate">
-  <h2>Донат</h2>
-  <div class="card" style="text-align:center"><div class="big" style="font-size:36px">Lorem ipsum</div><p class="mut">Dolor sit amet, consectetur adipiscing elit.</p></div>
-  <div class="row"><button class="pill on">100</button><button class="pill">300</button><button class="pill">500</button></div>
-  <button class="btn">Поддержать (демо)</button>
-</section>
-
 <section class="scr" id="settings">
-  <h2>Настройки</h2>
+  <h2>Профиль</h2>
   <div class="card">
     <div class="set"><span>Ник</span><span class="mut">@user</span></div>
     <div class="set"><span>Приватность профиля</span><span class="mut">вкл</span></div>
     <div class="set"><span>Тема</span><button class="pill" onclick="theme()">Сменить</button></div>
     <div class="set"><span>Язык</span><span class="mut">RU</span></div>
   </div>
+  <h2 style="margin-top:20px">Поддержать</h2>
+  <div class="card" style="text-align:center"><div class="big" style="font-size:36px">Lorem ipsum</div><p class="mut">Dolor sit amet, consectetur adipiscing elit.</p></div>
+  <div class="row"><button class="pill on">100</button><button class="pill">300</button><button class="pill">500</button></div>
+  <button class="btn">Поддержать (демо)</button>
 </section>
 
 </main>
@@ -95,7 +91,6 @@
   <button class="tab" data-t="top"><svg class="i" viewBox="0 0 24 24"><path d="M3 18L2 7l5.5 5L12 4l4.5 8L22 7l-1 11z"/><path d="M3 21h18"/></svg>Лидеры</button>
   <button class="tab" data-t="home"><svg class="i" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Главная</button>
   <button class="tab" data-t="progress"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Прогресс</button>
-  <button class="tab" data-t="donate"><svg class="i" viewBox="0 0 24 24"><path d="M12 2v20"/><path d="M17 6.5C16 5 14.3 4.5 12 4.5c-2.8 0-4.5 1.3-4.5 3.2 0 4.5 9 2.3 9 6.6 0 2-1.8 3.3-4.5 3.3-2.3 0-4-.7-5-2.3"/></svg>Донат</button>
 </nav>
 </div>
 <script src="app.js"></script>
