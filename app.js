@@ -2,7 +2,9 @@ var $ = function (id) { return document.getElementById(id); };
 var photoData = null;
 var msgs = {
   no_face: "Лицо не найдено. Загрузи чёткое фото лица",
-  limit: "На сегодня всё, лимит закончился. Заходи позже",
+  limit: "На сегодня всё, общий лимит закончился. Заходи позже",
+  daily_limit: "Твой лимит сканов на сегодня закончился. Приходи завтра",
+  minor: "Не могу оценить это фото. Загрузи своё фото, 18+",
   busy: "Много запросов, попробуй через минуту",
   off: "Сервис временно выключен",
   bad_image: "Не получилось обработать фото",
@@ -76,7 +78,7 @@ async function scan() {
       body: JSON.stringify({ image: photoData })
     });
     var d = await r.json().catch(function () { return {}; });
-    if (!r.ok || d.error) { showErr(msgs[d.error] || "Что-то пошло не так, попробуй ещё раз"); return; }
+    if (!r.ok || d.error) { showErr(msgs[d.error] || ("Что-то пошло не так (" + r.status + (d.error ? " " + d.error : "") + "), попробуй ещё раз")); return; }
     render(d);
   } catch (e) {
     showErr("Нет связи с сервером");
@@ -84,6 +86,7 @@ async function scan() {
     btn.disabled = false; btn.textContent = "Анализ";
   }
 }
+
 
 function bm(m) {
   var o = m === "open";
