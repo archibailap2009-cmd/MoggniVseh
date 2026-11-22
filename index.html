@@ -100,4 +100,32 @@
 </div>
 <script src="app.js"></script>
 </body>
+  <div id="gate" class="gate" role="dialog" aria-modal="true" aria-labelledby="gate-t">
+  <div class="gate-in">
+    <header>
+      <div class="logo">MOGGNI VSEH</div>
+      <div class="age">18+</div>
+    </header>
+    <div class="gate-b">
+      <h1 id="gate-t">Дисклеймер</h1>
+      <p class="gate-s">сначала прочитай. это важно.</p>
+      <div class="card gate-c">
+        <div class="gate-k">ЭТО МЕМ. НЕ ИНСТРУКЦИЯ.</div>
+        <p>Сайт создан исключительно в развлекательных целях. Оценки, «анализ» лица и весь контент - шутка.</p>
+        <p>Ничего на сайте нельзя воспринимать всерьёз, повторять или использовать как руководство к действию. Не следуй размещённым здесь советам.</p>
+        <p>Фото отправляется ИИ-сервису (Anthropic) для анализа. На сайте оно не хранится и не публикуется, а сам сервис может держать запросы у себя до 30 дней.</p>
+        <p><b>Все люди прекрасны сами по себе. Автор не пытается это опровергнуть.</b></p>
+      </div>
+      <button class="btn gate-btn" id="gateok" onclick="acceptGate()">Принимаю<small>Я принимаю написанное выше, подтверждаю, что мне исполнилось 18 лет и не имею претензий к автору.</small></button>
+      <div class="gate-f">МЕМЫ - ШУТКА. ТВОЯ ЦЕННОСТЬ - НЕТ.</div>
+    </div>
+  </div>
+</div>
+<script>
+window.CONSENT_V = 1; // версия текста дисклеймера: поменяешь текст, поставь 2, и все увидят экран снова
+try {
+  var c = JSON.parse(localStorage.getItem("mv_consent") || "null");
+  if (c && c.v === window.CONSENT_V) document.getElementById("gate").remove();
+} catch (e) {}
+</script>
 </html>
