@@ -103,3 +103,44 @@ function theme() {
 }
 
 go(location.hash.slice(1) || "home");
+var CV = window.CONSENT_V || 1;
+
+function consentId() {
+  try {
+    var c = JSON.parse(localStorage.getItem("mv_consent") || "null");
+    if (c && c.id) return c.id;
+  } catch (e) {}
+  return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
+}
+
+function sendConsent(rec) {
+  return fetch("/api/consent", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ v: rec.v, id: rec.id }),
+    keepalive: true
+  }).then(function (r) {
+    if (r.ok) {
+      rec.sent = 1;
+      try { localStorage.setItem("mv_consent", JSON.stringify(rec)); } catch (e) {}
+    }
+  }).catch(function () {});
+}
+
+function acceptGate() {
+  $("gateok").disabled = true;
+  var rec = { v: CV, id: consentId() };
+  try { localStorage.setItem("mv_consent", JSON.stringify(rec)); } catch (e) {}
+  sendConsent(rec);
+  var g = $("gate");
+  if (g) g.remove();
+  window.scrollTo(0, 0);
+}
+
+// если запись о согласии раньше не дошла до сервера, пробуем ещё раз
+(function () {
+  try {
+    var c = JSON.parse(localStorage.getItem("mv_consent") || "null");
+    if (c && c.v === CV && !c.sent) sendConsent(c);
+  } catch (e) {}
+})();
