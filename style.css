@@ -53,3 +53,15 @@ nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-w
 .gate-btn{padding:16px 14px;font-size:20px}
 .gate-btn small{display:block;margin-top:8px;font:400 13px/1.4 Inter,Arial,sans-serif;text-transform:none}
 .gate-f{margin-top:auto;padding-top:24px;text-align:center;color:var(--mut);font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.5px}
+.cal-m{font-family:Oswald,Impact,sans-serif;font-size:20px;text-transform:uppercase;letter-spacing:1px}
+.cal-h{margin-bottom:10px}
+.cal-h>.pill{flex:none;width:44px;padding:6px 0;text-align:center;font-size:16px}
+.cal-w,.cal-g{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-w{margin-bottom:4px;text-align:center;color:var(--mut);font-size:12px}
+.cd{aspect-ratio:1/1.1;min-width:0;padding:0;border:2px solid transparent;border-radius:10px;background:none;color:var(--fg);font-family:Inter,Arial,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer}
+.cd b{font-family:Oswald,sans-serif;font-size:16px;font-weight:500}
+.cd small{font-size:9px;line-height:1;margin-top:2px;opacity:.8}
+.cd.e{border:0;cursor:default}
+.cd.today{border-color:var(--line)}
+.cd.on{background:var(--fg);color:var(--bg)}
+.cd.fut{opacity:.35;cursor:default}
