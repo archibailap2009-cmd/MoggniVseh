@@ -79,7 +79,7 @@ async function scan() {
     });
     var d = await r.json().catch(function () { return {}; });
     if (!r.ok || d.error) { showErr(msgs[d.error] || ("Что-то пошло не так (" + r.status + (d.error ? " " + d.error : "") + "), попробуй ещё раз")); return; }
-    render(d);
+    render(d); saveScan(d);
   } catch (e) {
     showErr("Нет связи с сервером");
   } finally {
@@ -144,3 +144,94 @@ function acceptGate() {
     if (c && c.v === CV && !c.sent) sendConsent(c);
   } catch (e) {}
 })();
+// ---- Календарь прогресса (всё хранится в браузере) ----
+var PKEY = "mv_progress";
+var MONTHS = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+var calY = new Date().getFullYear(), calM = new Date().getMonth();
+
+function pload() {
+  try {
+    var p = JSON.parse(localStorage.getItem(PKEY) || "null");
+    if (p && typeof p === "object") {
+      p.marks = p.marks || {};
+      p.scans = Array.isArray(p.scans) ? p.scans : [];
+      return p;
+    }
+  } catch (e) {}
+  return { marks: {}, scans: [] };
+}
+function psave(p) { try { localStorage.setItem(PKEY, JSON.stringify(p)); } catch (e) {} }
+
+function dkey(d) {
+  var m = d.getMonth() + 1, day = d.getDate();
+  return d.getFullYear() + "-" + (m < 10 ? "0" : "") + m + "-" + (day < 10 ? "0" : "") + day;
+}
+
+function streak(marks) {
+  var d = new Date();
+  if (!marks[dkey(d)]) d.setDate(d.getDate() - 1); // сегодня ещё можно успеть отметить
+  var n = 0;
+  while (marks[dkey(d)]) { n++; d.setDate(d.getDate() - 1); }
+  return n;
+}
+
+function growth(scans) {
+  var from = Date.now() - 30 * 86400000;
+  var s = scans.filter(function (x) { return x.t >= from && isFinite(Number(x.i)); });
+  if (s.length < 2) return null;
+  return Number(s[s.length - 1].i) - Number(s[0].i);
+}
+
+function saveScan(d) {
+  var p = pload();
+  p.scans.push({ d: dkey(new Date()), t: Date.now(), i: d.index, tier: d.tier });
+  p.scans = p.scans.slice(-200);
+  psave(p);
+  drawProgress();
+}
+
+function drawProgress() {
+  var p = pload(), today = dkey(new Date());
+  $("pStreak").textContent = streak(p.marks);
+  var g = growth(p.scans);
+  $("pGrow").textContent = g === null ? "-" : (g > 0 ? "+" : "") + g.toFixed(1);
+  $("pMonth").textContent = MONTHS[calM] + " " + calY;
+
+  var days = new Date(calY, calM + 1, 0).getDate();
+  var off = (new Date(calY, calM, 1).getDay() + 6) % 7; // понедельник = 0
+  var last = {};
+  p.scans.forEach(function (x) { last[x.d] = Number(x.i); }); // последний скан за день
+
+  var h = "";
+  for (var i = 0; i < off; i++) h += '<span class="cd e"></span>';
+  for (var n = 1; n <= days; n++) {
+    var k = dkey(new Date(calY, calM, n));
+    var cls = "cd" + (p.marks[k] ? " on" : "") + (k === today ? " today" : "") + (k > today ? " fut" : "");
+    var sc = isFinite(last[k]) ? "<small>" + last[k].toFixed(1) + "</small>" : "";
+    h += '<button class="' + cls + '"' + (k > today ? " disabled" : "") + ' data-k="' + k + '"><b>' + n + "</b>" + sc + "</button>";
+  }
+  $("pGrid").innerHTML = h;
+  $("pBtn").textContent = p.marks[today] ? "Снять отметку за сегодня" : "Отметить сегодня";
+}
+
+function toggleMark(k) {
+  var p = pload();
+  if (p.marks[k]) delete p.marks[k]; else p.marks[k] = 1;
+  psave(p);
+  drawProgress();
+}
+function markToday() { toggleMark(dkey(new Date())); }
+
+function shiftMonth(s) {
+  calM += s;
+  if (calM < 0) { calM = 11; calY--; } else if (calM > 11) { calM = 0; calY++; }
+  drawProgress();
+}
+
+$("pGrid").onclick = function (e) {
+  var b = e.target.closest ? e.target.closest("button.cd") : null;
+  if (b && !b.disabled) toggleMark(b.dataset.k);
+};
+document.addEventListener("visibilitychange", function () { if (!document.hidden) drawProgress(); });
+
+drawProgress();
