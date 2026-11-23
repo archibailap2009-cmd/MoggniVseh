@@ -48,11 +48,20 @@
 
 <section class="scr" id="progress">
   <h2>Прогресс</h2>
-  <div class="card row"><div><div class="big">7</div><div class="mut">дней подряд</div></div><div><div class="big">+0.6</div><div class="mut">к оценке</div></div></div>
-  <div class="cal">[ здесь будет календарь ]</div>
-  <button class="btn" style="margin-top:12px">Отметить сегодня</button>
+  <div class="card row"><div><div class="big" id="pStreak">0</div><div class="mut">дней подряд</div></div><div><div class="big" id="pGrow">-</div><div class="mut">к оценке за 30 дней</div></div></div>
+  <div class="card">
+    <div class="row cal-h">
+      <button class="pill" onclick="shiftMonth(-1)" aria-label="Прошлый месяц">‹</button>
+      <b id="pMonth" class="cal-m"></b>
+      <button class="pill" onclick="shiftMonth(1)" aria-label="Следующий месяц">›</button>
+    </div>
+    <div class="cal-w"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div>
+    <div class="cal-g" id="pGrid"></div>
+  </div>
+  <button class="btn" id="pBtn" onclick="markToday()">Отметить сегодня</button>
+  <p class="mut" style="text-align:center">Отмечай день, когда занимался прокачкой: сон, уход, спорт. Тапни по дню, чтобы поставить или снять отметку. Маленькая цифра на дне - твой индекс в тот день.</p>
 </section>
-
+  
 <section class="scr" id="battle">
   <h2>Батл</h2>
   <div class="row" style="margin-bottom:10px"><button class="pill on" id="bo" onclick="bm('open')">Открытый</button><button class="pill" id="bf" onclick="bm('friend')">С другом</button></div>
