@@ -65,3 +65,4 @@ nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-w
 .cd.today{border-color:var(--line)}
 .cd.on{background:var(--fg);color:var(--bg)}
 .cd.fut{opacity:.35;cursor:default}
+.inp{width:100%;box-sizing:border-box;padding:12px 14px;margin-bottom:10px;border-radius:12px;border:1px solid rgba(128,128,128,.4);background:transparent;color:inherit;font:inherit}
