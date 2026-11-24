@@ -136,6 +136,19 @@ module.exports = async function handler(req, res) {
     spentMicro = Number(spent || 0);
     if (spentMicro / 1e6 >= BUDGET_USD) return res.status(402).json({ error: "limit" });
 
+     // ---- Батл: если скан сделан для комнаты, записываем результат туда ----
+  const room = req.body && req.body.room, bpid = req.body && req.body.pid;
+  if (/^[A-Z2-9]{6}$/.test(room || "") && /^[\w-]{8,64}$/.test(bpid || "")) {
+    try {
+      const bkey = "mv:b:" + room, field = "p:" + bpid;
+      const [cur] = await redis([["HGET", bkey, field]]);
+      if (cur) {
+        const p = JSON.parse(cur);
+        p.ready = 1; p.index = index; p.tier = tier.name; p.advice = tier.advice;
+        await redis([["HSET", bkey, field, JSON.stringify(p)], ["EXPIRE", bkey, 86400]]);
+      }
+    } catch (e) { console.error("battle write failed"); }
+  }
     const [used] = await redis([
       ["INCR", scanKey],
       ["EXPIRE", scanKey, 172800],
