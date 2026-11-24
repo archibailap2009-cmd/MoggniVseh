@@ -17,6 +17,7 @@
 
 <section class="scr" id="home">
   <h2>Ты недоmoggаешь, начнем тренировку!</h2>
+  <div class="mut" id="bnote" style="display:none;text-align:center;margin-bottom:8px">Скан пойдёт в батл <button class="pill" onclick="battleCancelScan()">Отмена</button></div>
   <div class="card">
     <div class="ph" id="ph"><span>Загрузи фото<br>(заглушка — реального анализа нет)</span></div>
     <input type="file" id="file" accept="image/*" hidden>
@@ -66,7 +67,27 @@
   <h2>Батл</h2>
   <div class="row" style="margin-bottom:10px"><button class="pill on" id="bo" onclick="bm('open')">Открытый</button><button class="pill" id="bf" onclick="bm('friend')">С другом</button></div>
   <div class="card" id="bopen" style="text-align:center"><div class="big" style="font-size:28px">Функция пока недоступна</div><p class="mut">Lorem ipsum dolor sit amet.</p></div>
-  <div id="bfriend" style="display:none"><button class="btn">Пригласить друга</button></div>
+ <div id="bfriend" style="display:none">
+  <div class="card" id="bsetup">
+    <div class="mut" id="bjoinnote" style="display:none;margin-bottom:8px">Тебя позвали в батл. Введи ник и заходи</div>
+    <input class="inp" id="bnick" maxlength="16" placeholder="Твой ник" autocomplete="off">
+    <button class="btn" id="bmake" onclick="battleCreate()">Создать комнату</button>
+    <button class="btn" id="bjoin" onclick="battleJoin()" style="display:none">Войти в комнату</button>
+    <div id="berr" class="mut" style="display:none;text-align:center;margin-top:8px"></div>
+  </div>
+  <div id="broom" style="display:none">
+    <div class="card">
+      <div class="row"><span class="mut">Комната</span><span class="mut" id="bcount"></span></div>
+      <div class="big" id="bcode"></div>
+      <div class="big" id="bwin" style="font-size:20px;margin-top:6px"></div>
+    </div>
+    <button class="btn" onclick="battleShare()">Поделиться</button>
+    <button class="btn alt" id="bcopy" onclick="battleCopy()">Копировать ссылку</button>
+    <div class="card" id="blist"></div>
+    <button class="btn" id="bscan" onclick="battleStartScan()">Сканировать для батла</button>
+    <button class="btn alt" onclick="battleLeave()">Выйти из комнаты</button>
+  </div>
+</div>
 </section>
 
 <section class="scr" id="top">
@@ -103,6 +124,7 @@
 </nav>
 </div>
 <script src="app.js"></script>
+  <script src="battle.js"></script>
 </body>
   <div id="gate" class="gate" role="dialog" aria-modal="true" aria-labelledby="gate-t">
   <div class="gate-in">
