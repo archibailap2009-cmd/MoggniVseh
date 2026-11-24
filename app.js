@@ -17,6 +17,7 @@ function go(id) {
   document.querySelectorAll(".tab").forEach(function (t) { t.classList.toggle("on", t.dataset.t === id); });
   if (location.hash !== "#" + id) location.hash = id;
   window.scrollTo(0, 0);
+  if (id === "battle" && window.battleEnter) battleEnter();
 }
 document.querySelectorAll(".tab").forEach(function (t) { t.onclick = function () { go(t.dataset.t); }; });
 window.addEventListener("hashchange", function () { go(location.hash.slice(1)); });
@@ -75,11 +76,12 @@ async function scan() {
     var r = await fetch("/api/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image: photoData })
+      body: JSON.stringify(window.battleScanPayload ? battleScanPayload({ image: photoData }) : { image: photoData })
     });
     var d = await r.json().catch(function () { return {}; });
     if (!r.ok || d.error) { showErr(msgs[d.error] || ("Что-то пошло не так (" + r.status + (d.error ? " " + d.error : "") + "), попробуй ещё раз")); return; }
     render(d); saveScan(d);
+    if (window.battleAfterScan) battleAfterScan();
   } catch (e) {
     showErr("Нет связи с сервером");
   } finally {
