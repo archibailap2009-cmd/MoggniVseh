@@ -14,6 +14,7 @@
     room_full: "В комнате нет мест (максимум 10)",
     rooms_limit: "Слишком много комнат на сегодня, попробуй завтра",
     not_member: "Ты не в этой комнате",
+    not_owner: "Показать результаты может только создатель комнаты",
     off: "Сервис временно выключен",
     config: "Ошибка на сервере, попробуй ещё раз"
   };
@@ -199,21 +200,21 @@
     var mid = document.createElement("div");
     mid.appendChild(document.createTextNode(p.nick + (p.me ? " (ты)" : "")));
     var sub = document.createElement("div"); sub.className = "mut";
-    sub.textContent = p.ready ? p.tier : waitText;
+    sub.textContent = p.ready ? (p.tier || "готов") : waitText;
     mid.appendChild(sub);
     var sc = document.createElement("span"); sc.className = "sc";
-    sc.textContent = p.ready ? p.index.toFixed(1) : "...";
+    sc.textContent = p.ready ? (p.index == null ? "✓" : p.index.toFixed(1)) : "...";
     row.appendChild(n); row.appendChild(av); row.appendChild(mid); row.appendChild(sc);
     return row;
   }
 
   function fillList(box, players, waitText) {
     var ready = players.filter(function (p) { return p.ready; })
-      .sort(function (a, b) { return b.index - a.index; });
+      .sort(function (a, b) { return (b.index || 0) - (a.index || 0); });
     var wait = players.filter(function (p) { return !p.ready; });
     box.innerHTML = "";
     ready.concat(wait).forEach(function (p, i) {
-      box.appendChild(mkRow(p.ready ? (i < 9 ? "0" : "") + (i + 1) : "--", p, waitText));
+      box.appendChild(mkRow(p.ready && p.index != null ? (i < 9 ? "0" : "") + (i + 1) : "--", p, waitText));
     });
     return ready;
   }
@@ -224,8 +225,22 @@
     var me = d.players.filter(function (p) { return p.me; })[0];
     $("bscan").textContent = me && me.ready ? "Пересканировать" : "Сканировать для батла";
     var top = ready[0];
-    $("bwin").textContent = top ? (top.me ? "ТЫ ВСЕХ ЗАМОГГАЛ" : "ВПЕРЕДИ " + top.nick.toUpperCase()) : "";
+    var shown = d.revealed && top && top.index != null;
+    $("bwin").textContent = shown ? (top.me ? "ТЫ ВСЕХ ЗАМОГГАЛ" : "ВПЕРЕДИ " + top.nick.toUpperCase())
+      : (d.revealed ? "" : "РЕЗУЛЬТАТЫ СКРЫТЫ");
+    $("breveal").style.display = !d.revealed && d.owner ? "block" : "none";
+    $("bhint").style.display = !d.revealed && !d.owner ? "block" : "none";
   }
+
+  window.battleReveal = function () {
+    if (!room) return;
+    var b = $("breveal"); b.disabled = true;
+    api({ action: "reveal", id: room }).then(function (d) {
+      if (d.error) err(MSG[d.error] || "Не получилось показать результаты");
+      poll();
+    }).catch(function () {})
+      .then(function () { b.disabled = false; });
+  };
 
   // ---------- вкладка «Друзья» ----------
   window.friendsEnter = function () {
