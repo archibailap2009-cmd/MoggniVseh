@@ -99,22 +99,24 @@
     err("");
     var n = nick();
     if (!n) { err(MSG.bad_nick); return; }
-    var b = $("bmake"); b.disabled = true;
+    var b = $("bmake"); b.disabled = true; b.textContent = "Создаю...";
     api({ action: "create", nick: n }).then(function (d) {
-      if (d.id) setRoom(d.id); else err(MSG[d.error] || "Не получилось создать комнату");
+      if (d.id) setRoom(d.id);
+      else err(MSG[d.error] || ("Не получилось создать комнату (" + d._status + ")"));
     }).catch(function () { err("Нет связи с сервером"); })
-      .then(function () { b.disabled = false; });
+      .then(function () { b.disabled = false; b.textContent = "Создать комнату"; });
   };
 
   window.battleJoin = function () {
     err("");
     var n = nick();
     if (!n) { err(MSG.bad_nick); return; }
-    var b = $("bjoin"); b.disabled = true;
+    var b = $("bjoin"); b.disabled = true; b.textContent = "Вхожу...";
     api({ action: "join", id: pending, nick: n }).then(function (d) {
-      if (d.ok) setRoom(pending); else err(MSG[d.error] || "Не получилось войти");
+      if (d.ok) setRoom(pending);
+      else err(MSG[d.error] || ("Не получилось войти (" + d._status + ")"));
     }).catch(function () { err("Нет связи с сервером"); })
-      .then(function () { b.disabled = false; });
+      .then(function () { b.disabled = false; b.textContent = "Войти в комнату"; });
   };
 
   window.battleShare = function () {
@@ -160,7 +162,8 @@
 
   // хуки для app.js
   window.battleScanPayload = function (o) {
-    if (scanForRoom && room) { o.room = room; o.pid = pid(); }
+    o.pid = pid(); // по нему сервер запоминает твой лучший результат для списка друзей
+    if (scanForRoom && room) o.room = room;
     return o;
   };
   window.battleAfterScan = function () {
@@ -189,26 +192,34 @@
     }).catch(function () {});
   }
 
-  function draw(d) {
-    var ready = d.players.filter(function (p) { return p.ready; })
+  function mkRow(num, p, waitText) {
+    var row = document.createElement("div"); row.className = "lb";
+    var n = document.createElement("b"); n.textContent = num;
+    var av = document.createElement("div"); av.className = "av";
+    var mid = document.createElement("div");
+    mid.appendChild(document.createTextNode(p.nick + (p.me ? " (ты)" : "")));
+    var sub = document.createElement("div"); sub.className = "mut";
+    sub.textContent = p.ready ? p.tier : waitText;
+    mid.appendChild(sub);
+    var sc = document.createElement("span"); sc.className = "sc";
+    sc.textContent = p.ready ? p.index.toFixed(1) : "...";
+    row.appendChild(n); row.appendChild(av); row.appendChild(mid); row.appendChild(sc);
+    return row;
+  }
+
+  function fillList(box, players, waitText) {
+    var ready = players.filter(function (p) { return p.ready; })
       .sort(function (a, b) { return b.index - a.index; });
-    var wait = d.players.filter(function (p) { return !p.ready; });
-    var box = $("blist");
+    var wait = players.filter(function (p) { return !p.ready; });
     box.innerHTML = "";
     ready.concat(wait).forEach(function (p, i) {
-      var row = document.createElement("div"); row.className = "lb";
-      var n = document.createElement("b"); n.textContent = p.ready ? (i < 9 ? "0" : "") + (i + 1) : "--";
-      var av = document.createElement("div"); av.className = "av";
-      var mid = document.createElement("div");
-      mid.appendChild(document.createTextNode(p.nick + (p.me ? " (ты)" : "")));
-      var sub = document.createElement("div"); sub.className = "mut";
-      sub.textContent = p.ready ? p.tier : "ждёт скан";
-      mid.appendChild(sub);
-      var sc = document.createElement("span"); sc.className = "sc";
-      sc.textContent = p.ready ? p.index.toFixed(1) : "...";
-      row.appendChild(n); row.appendChild(av); row.appendChild(mid); row.appendChild(sc);
-      box.appendChild(row);
+      box.appendChild(mkRow(p.ready ? (i < 9 ? "0" : "") + (i + 1) : "--", p, waitText));
     });
+    return ready;
+  }
+
+  function draw(d) {
+    var ready = fillList($("blist"), d.players, "ждёт скан");
     $("bcount").textContent = d.players.length + " / " + d.max;
     var me = d.players.filter(function (p) { return p.me; })[0];
     $("bscan").textContent = me && me.ready ? "Пересканировать" : "Сканировать для батла";
@@ -216,15 +227,41 @@
     $("bwin").textContent = top ? (top.me ? "ТЫ ВСЕХ ЗАМОГГАЛ" : "ВПЕРЕДИ " + top.nick.toUpperCase()) : "";
   }
 
+  // ---------- вкладка «Друзья» ----------
+  window.friendsEnter = function () {
+    api({ action: "friends" }).then(function (d) {
+      if (!d.players) return;
+      fillList($("flist"), d.players, "ещё не сканировал");
+      $("fempty").style.display = d.players.length < 2 ? "block" : "none";
+    }).catch(function () {});
+  };
+
+  // кнопка «Позвать друзей в батл» на вкладке «Друзья»
+  window.friendsInvite = function () {
+    if (room) { window.battleShare(); go("battle"); return; }
+    var n = (lsGet("mv_nick") || "").trim();
+    if (!n) { go("battle"); return; } // ника ещё нет, там его введут
+    var b = $("finvite"); b.disabled = true; b.textContent = "Создаю...";
+    api({ action: "create", nick: n }).then(function (d) {
+      if (d.id) {
+        setRoom(d.id);
+        go("battle");
+        window.battleShare(); // если браузер не даёт открыть меню сам, кнопка «Поделиться» уже на экране
+      } else {
+        go("battle");
+        err(MSG[d.error] || ("Не получилось создать комнату (" + d._status + ")"));
+      }
+    }).catch(function () { go("battle"); err("Нет связи с сервером"); })
+      .then(function () { b.disabled = false; b.textContent = "Позвать друзей в батл"; });
+  };
+
   // ---------- вход на вкладку ----------
   window.battleEnter = function () {
     if (pending && pending !== room) {
-      bm("friend");
       showSetup(true);
       return;
     }
     if (room) {
-      bm("friend");
       showRoom();
       return;
     }
@@ -232,7 +269,6 @@
     var saved = lsGet("mv_room");
     if (saved && /^[A-Z2-9]{6}$/.test(saved)) {
       room = saved;
-      bm("friend");
       showRoom();
       return;
     }
