@@ -106,6 +106,7 @@ module.exports = async function handler(req, res) {
         if (Number(fresh) !== 1) continue; // такой код уже занят, пробуем другой
         await redis([
           ["HSET", key, "p:" + pid, JSON.stringify({ nick: nick, ready: 0 })],
+          ["HSET", key, "owner", pid],
           ["EXPIRE", key, TTL],
           ["HSET", "mv:nick", pid, nick],
         ]);
@@ -145,9 +146,18 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
 
+    // ---------- Показать результаты (может только создатель комнаты) ----------
+    if (action === "reveal") {
+      if (!h["p:" + pid]) return res.status(403).json({ error: "not_member" });
+      if (h.owner && h.owner !== pid) return res.status(403).json({ error: "not_owner" });
+      await redis([["HSET", key, "revealed", "1"], ["EXPIRE", key, TTL]]);
+      return res.status(200).json({ ok: true });
+    }
+
     // ---------- Состояние комнаты (его опрашивает сайт) ----------
     if (action === "state") {
       if (!h["p:" + pid]) return res.status(403).json({ error: "not_member" });
+      const revealed = h.revealed === "1";
       const players = fields.map((k) => {
         let p = {};
         try {
@@ -156,13 +166,19 @@ module.exports = async function handler(req, res) {
         return {
           nick: cleanNick(p.nick) || "???",
           ready: p.ready ? 1 : 0,
-          index: p.ready ? Number(p.index) : null,
-          tier: p.ready ? String(p.tier || "") : "",
-          advice: p.ready ? String(p.advice || "") : "",
+          // пока создатель не показал результаты, индекс и тир скрыты
+          index: p.ready && revealed ? Number(p.index) : null,
+          tier: p.ready && revealed ? String(p.tier || "") : "",
+          advice: p.ready && revealed ? String(p.advice || "") : "",
           me: k === "p:" + pid,
         };
       });
-      return res.status(200).json({ players: players, max: MAX_PLAYERS });
+      return res.status(200).json({
+        players: players,
+        max: MAX_PLAYERS,
+        revealed: revealed,
+        owner: !h.owner || h.owner === pid, // у старых комнат без владельца кнопка доступна всем
+      });
     }
 
     return res.status(400).json({ error: "bad_action" });
