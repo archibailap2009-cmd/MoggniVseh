@@ -136,19 +136,6 @@ module.exports = async function handler(req, res) {
     spentMicro = Number(spent || 0);
     if (spentMicro / 1e6 >= BUDGET_USD) return res.status(402).json({ error: "limit" });
 
-     // ---- Батл: если скан сделан для комнаты, записываем результат туда ----
-  const room = req.body && req.body.room, bpid = req.body && req.body.pid;
-  if (/^[A-Z2-9]{6}$/.test(room || "") && /^[\w-]{8,64}$/.test(bpid || "")) {
-    try {
-      const bkey = "mv:b:" + room, field = "p:" + bpid;
-      const [cur] = await redis([["HGET", bkey, field]]);
-      if (cur) {
-        const p = JSON.parse(cur);
-        p.ready = 1; p.index = index; p.tier = tier.name; p.advice = tier.advice;
-        await redis([["HSET", bkey, field, JSON.stringify(p)], ["EXPIRE", bkey, 86400]]);
-      }
-    } catch (e) { console.error("battle write failed"); }
-  }
     const [used] = await redis([
       ["INCR", scanKey],
       ["EXPIRE", scanKey, 172800],
@@ -245,6 +232,31 @@ module.exports = async function handler(req, res) {
   const tips = (Array.isArray(out.tips) ? out.tips : [])
     .slice(0, 4)
     .map((t) => ({ title: clip(t && t.title, 40), text: clip(t && t.text, 140) }));
+
+  // ---- Друзья и батл: запоминаем лучший результат и пишем результат в комнату ----
+  // Блок стоит ПОСЛЕ расчёта index и tier, иначе он не видит эти значения.
+  const room = req.body && req.body.room, bpid = req.body && req.body.pid;
+  if (/^[\w-]{8,64}$/.test(bpid || "")) {
+    try {
+      const [prev] = await redis([["HGET", "mv:best", bpid]]);
+      let best = null;
+      try { best = prev ? JSON.parse(prev) : null; } catch (e) {}
+      if (!best || index > Number(best.i)) {
+        await redis([["HSET", "mv:best", bpid, JSON.stringify({ i: index, tier: tier.name })]]);
+      }
+    } catch (e) { console.error("best not saved"); }
+    if (/^[A-Z2-9]{6}$/.test(room || "")) {
+      try {
+        const bkey = "mv:b:" + room, field = "p:" + bpid;
+        const [cur] = await redis([["HGET", bkey, field]]);
+        if (cur) {
+          const p = JSON.parse(cur);
+          p.ready = 1; p.index = index; p.tier = tier.name; p.advice = tier.advice;
+          await redis([["HSET", bkey, field, JSON.stringify(p)], ["EXPIRE", bkey, 86400]]);
+        }
+      } catch (e) { console.error("battle write failed"); }
+    }
+  }
 
   const used = await redis([["GET", scanKey]]).then((x) => Number(x[0] || 0)).catch(() => 0);
 
