@@ -88,15 +88,11 @@
 </div>
 </section>
 
-<section class="scr" id="top">
-  <h2>Лидеры</h2>
-  <div class="row" style="margin-bottom:10px"><button class="pill on">Неделя</button><button class="pill">Месяц</button><button class="pill">Всё время</button></div>
-  <div class="card">
-    <div class="lb"><b>01</b><div class="av"></div><div>@user_one<div class="mut">True Adam</div></div><span class="sc">9.4</span></div>
-    <div class="lb"><b>02</b><div class="av"></div><div>@user_two<div class="mut">Chadlite</div></div><span class="sc">8.7</span></div>
-    <div class="lb"><b>03</b><div class="av"></div><div>@user_three<div class="mut">HTN</div></div><span class="sc">7.9</span></div>
-    <div class="lb"><b>04</b><div class="av"></div><div>@user_four<div class="mut">MTN</div></div><span class="sc">6.8</span></div>
-  </div>
+<section class="scr" id="friends">
+  <h2>Друзья</h2>
+  <div class="card" id="flist"></div>
+  <p class="mut" id="fempty" style="text-align:center;display:none">Пока пусто. Создай комнату в «Батле» и позови друзей: все, кто зашёл, попадут сюда.</p>
+  <button class="btn" id="finvite" onclick="friendsInvite()">Позвать друзей в батл</button>
 </section>
 
 <section class="scr" id="settings">
@@ -116,7 +112,7 @@
 </main>
 <nav>
   <button class="tab" data-t="battle"><svg class="i" viewBox="0 0 24 24"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v2a3 3 0 0 0 3 3"/><path d="M17 6h3v2a3 3 0 0 1-3 3"/><path d="M12 14v4M9 18h6M8 21h8"/></svg>Батл</button>
-  <button class="tab" data-t="top"><svg class="i" viewBox="0 0 24 24"><path d="M3 18L2 7l5.5 5L12 4l4.5 8L22 7l-1 11z"/><path d="M3 21h18"/></svg>Лидеры</button>
+  <button class="tab" data-t="friends"><svg class="i" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c2.9 0 4.5 1.9 4.5 5"/></svg>Друзья</button>  
   <button class="tab" data-t="home"><svg class="i" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Главная</button>
   <button class="tab" data-t="progress"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Прогресс</button>
 </nav>
