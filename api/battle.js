@@ -9,6 +9,7 @@ const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_
 const MAX_PLAYERS = 10; // потолок людей в комнате
 const ROOMS_PER_DAY = 10; // сколько комнат можно создать с одного IP в сутки
 const TTL = 86400; // 24 часа
+const FR_TTL = 15552000; // список друзей хранится ~180 дней с последнего батла
 const ALPHA = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // без похожих символов (0/O, 1/I/L)
 
 async function redis(commands) {
@@ -63,6 +64,27 @@ module.exports = async function handler(req, res) {
   if (!PID_RE.test(pid)) return res.status(400).json({ error: "bad_pid" });
 
   try {
+    // ---------- Список друзей: все, с кем был в одной комнате ----------
+    if (action === "friends") {
+      const [mem] = await redis([["SMEMBERS", "mv:fr:" + pid]]);
+      const ids = [pid].concat(Array.isArray(mem) ? mem.slice(0, 200) : []);
+      const [nicks, bests] = await redis([["HMGET", "mv:nick"].concat(ids), ["HMGET", "mv:best"].concat(ids)]);
+      const players = ids.map((id, i) => {
+        let bst = null;
+        try {
+          bst = bests && bests[i] ? JSON.parse(bests[i]) : null;
+        } catch (e) {}
+        return {
+          nick: cleanNick(nicks && nicks[i]) || (id === pid ? "ты" : "???"),
+          ready: bst ? 1 : 0,
+          index: bst ? Number(bst.i) : null,
+          tier: bst ? String(bst.tier || "") : "",
+          me: id === pid,
+        };
+      });
+      return res.status(200).json({ players: players });
+    }
+
     // ---------- Создать комнату ----------
     if (action === "create") {
       const nick = cleanNick(b.nick);
@@ -85,6 +107,7 @@ module.exports = async function handler(req, res) {
         await redis([
           ["HSET", key, "p:" + pid, JSON.stringify({ nick: nick, ready: 0 })],
           ["EXPIRE", key, TTL],
+          ["HSET", "mv:nick", pid, nick],
         ]);
         return res.status(200).json({ id: id });
       }
@@ -106,10 +129,19 @@ module.exports = async function handler(req, res) {
       const nick = cleanNick(b.nick);
       if (!nick) return res.status(400).json({ error: "bad_nick" });
       if (fields.length >= MAX_PLAYERS) return res.status(409).json({ error: "room_full" });
-      await redis([
+      const others = fields.map((k) => k.slice(2));
+      const cmds = [
         ["HSET", key, "p:" + pid, JSON.stringify({ nick: nick, ready: 0 })],
         ["EXPIRE", key, TTL],
-      ]);
+        ["HSET", "mv:nick", pid, nick],
+      ];
+      others.forEach((o) => {
+        cmds.push(["SADD", "mv:fr:" + pid, o]);
+        cmds.push(["SADD", "mv:fr:" + o, pid]);
+        cmds.push(["EXPIRE", "mv:fr:" + o, FR_TTL]);
+      });
+      cmds.push(["EXPIRE", "mv:fr:" + pid, FR_TTL]);
+      await redis(cmds);
       return res.status(200).json({ ok: true });
     }
 
