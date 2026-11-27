@@ -193,7 +193,7 @@
     }).catch(function () {});
   }
 
-  function mkRow(num, p, waitText) {
+  function mkRow(num, p, waitText, removable) {
     var row = document.createElement("div"); row.className = "lb";
     var n = document.createElement("b"); n.textContent = num;
     var av = document.createElement("div"); av.className = "av";
@@ -202,19 +202,26 @@
     var sub = document.createElement("div"); sub.className = "mut";
     sub.textContent = p.ready ? (p.tier || "готов") : waitText;
     mid.appendChild(sub);
+    if (removable && !p.me && p.fid) {
+      var rm = document.createElement("div"); rm.className = "mut";
+      rm.style.cssText = "cursor:pointer;text-decoration:underline;font-size:12px";
+      rm.textContent = "убрать из друзей";
+      rm.onclick = function () { removeFriend(p.fid, p.nick); };
+      mid.appendChild(rm);
+    }
     var sc = document.createElement("span"); sc.className = "sc";
     sc.textContent = p.ready ? (p.index == null ? "✓" : p.index.toFixed(1)) : "...";
     row.appendChild(n); row.appendChild(av); row.appendChild(mid); row.appendChild(sc);
     return row;
   }
 
-  function fillList(box, players, waitText) {
+  function fillList(box, players, waitText, removable) {
     var ready = players.filter(function (p) { return p.ready; })
       .sort(function (a, b) { return (b.index || 0) - (a.index || 0); });
     var wait = players.filter(function (p) { return !p.ready; });
     box.innerHTML = "";
     ready.concat(wait).forEach(function (p, i) {
-      box.appendChild(mkRow(p.ready && p.index != null ? (i < 9 ? "0" : "") + (i + 1) : "--", p, waitText));
+      box.appendChild(mkRow(p.ready && p.index != null ? (i < 9 ? "0" : "") + (i + 1) : "--", p, waitText, removable));
     });
     return ready;
   }
@@ -236,7 +243,7 @@
     if (!room) return;
     var b = $("breveal"); b.disabled = true;
     api({ action: "reveal", id: room }).then(function (d) {
-      if (d.error) err(MSG[d.error] || "Не получилось показать результаты");
+      if (d.error) { var h = $("bhint"); h.textContent = MSG[d.error] || "Не получилось показать результаты"; h.style.display = "block"; }
       poll();
     }).catch(function () {})
       .then(function () { b.disabled = false; });
@@ -246,9 +253,26 @@
   window.friendsEnter = function () {
     api({ action: "friends" }).then(function (d) {
       if (!d.players) return;
-      fillList($("flist"), d.players, "ещё не сканировал");
+      fillList($("flist"), d.players, "ещё не сканировал", true);
       $("fempty").style.display = d.players.length < 2 ? "block" : "none";
     }).catch(function () {});
+  };
+
+  function removeFriend(fid, name) {
+    if (!confirm("Убрать " + name + " из друзей?")) return;
+    api({ action: "unfriend", fid: fid }).then(function () { window.friendsEnter(); }).catch(function () {});
+  }
+
+  // ник в профиле
+  window.profileEnter = function () {
+    var i = $("pnick");
+    if (i) i.value = lsGet("mv_nick") || "";
+  };
+  window.saveNick = function () {
+    var n = $("pnick").value.replace(/[<>]/g, "").trim().slice(0, 16);
+    if (!n) return;
+    lsSet("mv_nick", n);
+    api({ action: "setnick", nick: n }).catch(function () {});
   };
 
   // кнопка «Позвать друзей в батл» на вкладке «Друзья»
