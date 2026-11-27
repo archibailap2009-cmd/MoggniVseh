@@ -161,7 +161,7 @@ module.exports = async function handler(req, res) {
       },
       body: JSON.stringify({
         model: "claude-haiku-5-5",
-        max_tokens: 700,
+        max_tokens: 1200,
         system: SYSTEM,
         messages: [
           {
