@@ -215,10 +215,12 @@ module.exports = async function handler(req, res) {
     .join("");
   const a = text.indexOf("{");
   const b = text.lastIndexOf("}");
-  let out;
+    let out;
   try {
     out = JSON.parse(text.slice(a, b + 1));
   } catch (e) {
+    console.error("parse failed", data.stop_reason, JSON.stringify(text.slice(0, 300)));
+    await refund();
     return res.status(502).json({ error: "parse" });
   }
 
