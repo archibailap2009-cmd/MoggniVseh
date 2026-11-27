@@ -19,6 +19,7 @@ function go(id) {
   window.scrollTo(0, 0);
   if (id === "battle" && window.battleEnter) battleEnter();
   if (id === "friends" && window.friendsEnter) friendsEnter();
+  if (id === "settings" && window.profileEnter) profileEnter();
 }
 document.querySelectorAll(".tab").forEach(function (t) { t.onclick = function () { go(t.dataset.t); }; });
 window.addEventListener("hashchange", function () { go(location.hash.slice(1)); });
