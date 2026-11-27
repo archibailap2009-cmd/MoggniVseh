@@ -44,6 +44,11 @@ function cleanNick(v) {
     .slice(0, 16);
 }
 
+// короткий публичный номер друга (настоящий pid наружу не отдаём)
+function fidOf(id) {
+  return crypto.createHash("sha256").update("fid:" + id).digest("hex").slice(0, 10);
+}
+
 function makeId() {
   let s = "";
   for (let i = 0; i < 6; i++) s += ALPHA[crypto.randomInt(ALPHA.length)];
@@ -80,9 +85,30 @@ module.exports = async function handler(req, res) {
           index: bst ? Number(bst.i) : null,
           tier: bst ? String(bst.tier || "") : "",
           me: id === pid,
+          fid: id === pid ? "" : fidOf(id),
         };
       });
       return res.status(200).json({ players: players });
+    }
+
+    // ---------- Сменить ник (виден в списке друзей) ----------
+    if (action === "setnick") {
+      const nick = cleanNick(b.nick);
+      if (!nick) return res.status(400).json({ error: "bad_nick" });
+      await redis([["HSET", "mv:nick", pid, nick]]);
+      return res.status(200).json({ ok: true });
+    }
+
+    // ---------- Убрать из друзей ----------
+    if (action === "unfriend") {
+      const fid = String(b.fid || "");
+      if (!/^[0-9a-f]{10}$/.test(fid)) return res.status(400).json({ error: "bad_fid" });
+      const [mem] = await redis([["SMEMBERS", "mv:fr:" + pid]]);
+      const target = (Array.isArray(mem) ? mem : []).find((m) => fidOf(m) === fid);
+      if (target) {
+        await redis([["SREM", "mv:fr:" + pid, target], ["SREM", "mv:fr:" + target, pid]]);
+      }
+      return res.status(200).json({ ok: true });
     }
 
     // ---------- Создать комнату ----------
